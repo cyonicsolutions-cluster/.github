@@ -20,17 +20,18 @@ jobs:
         id: get_repos
         run: |
           echo "Obtendo repositórios..."
-          curl -s "https://api.github.com/users/${{ env.GITHUB_USER }}/repos" | jq -r '.[] | "(**.name**)\n <br> \(.description // "Sem descrição")\n  link: \(.html_url)"' > projetos.yaml
+          curl -s "https://api.github.com/users/${{ env.GITHUB_USER }}/repos" | jq -r '.[] | "**(.name)**\n <br> \(.description // "This project didn't provide an description")\n <br> \(.html_url)"' > projects.yaml
 
       - name: Atualizar README.md
         run: |
           echo "Atualizando README.md..."
-          sed -i '/<!-- <projects> -->/,/<!-- <\/projects> -->/{//!d}; /<!-- <projects> -->/r projetos.yaml' README.md
+          sed -i '/<!-- <projects> -->/,/<!-- <\/projects> -->/{//!d}; /<!-- <projects> -->/r projects.yaml' README.md
 
       - name: Commit e push das alterações
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add README.md
-          git commit -m "Atualiza projetos no README" || echo "Nenhuma alteração para commit"
+          # echo "A data e hora atuais são: $(date +"%Y-%m-%d %H:%M:%S")"
+          git commit -m "README Repository Update at $(date +"%Y-%m-%d %H:%M:%S") UTC " || echo "Nenhuma alteração para commit"
           git push
