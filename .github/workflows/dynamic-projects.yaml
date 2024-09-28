@@ -19,11 +19,7 @@ jobs:
       - name: Obter projetos do GitHub
         id: get_repos
         run: |
-          curl -s "https://api.github.com/users/${{ env.GITHUB_USER }}/repos?per_page=100" | jq -r --arg user "${{ env.GITHUB_USER }}" '.[] | "<details>\n<summary>**\($user/\(.name))**</summary>\n<br>\(.description // "This project didn'\''t provide a description")\n<br>\(.html_url)<br></details>"' | sed 's/\\/\\\\/g' > projects.yaml
-
-      - name: Exibir projetos
-        run: |
-          cat projects.yaml
+          curl -s "https://api.github.com/users/${{ env.GITHUB_USER }}/repos" | jq -r '.[] | "*\(.name)*\n<br>\(.description // "This project didn'\''t provide a description")\n<br>\(.html_url)"' > projects.yaml
 
       - name: Atualizar README.md
         run: |
@@ -35,5 +31,5 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add README.md
-          git commit -m "README Repository Update at $(date +"%Y-%m-%d %H:%M:%S") UTC" || echo "Nenhuma alteração para commit"
+          git commit -m "README Repository Update at $(date +"%Y-%m-%d %H:%M:%S") UTC " || echo "Nenhuma alteração para commit"
           git push
