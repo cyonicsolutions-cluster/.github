@@ -31,6 +31,6 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add README.md
+          git add ./profile/README.md
           git commit -m "README Repository Update at $(date +"%Y-%m-%d %H:%M:%S") UTC" || echo "Nenhuma alteração para commit"
           git push
