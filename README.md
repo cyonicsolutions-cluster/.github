@@ -16,7 +16,7 @@ Please refer to [individual repositories](https://github.com/orgs/getcyonic/repo
 
 ## Projects Database
 <!-- <projects> -->
-test
+-
 <!-- </projects> -->
 
 ---
