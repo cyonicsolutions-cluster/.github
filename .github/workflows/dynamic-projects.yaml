@@ -19,7 +19,11 @@ jobs:
       - name: Obter projetos do GitHub
         id: get_repos
         run: |
-          curl -s "https://api.github.com/users/${{ env.GITHUB_USER }}/repos?per_page=100" | jq -r --arg user "${{ env.GITHUB_USER }}" '.[] | "<details>\n<summary>**\($user/\(.name))**</summary>\n<br>\(.description // "This project didn'\''t provide a description")\n<br>\(.html_url)<br></details>"' > projects.yaml
+          curl -s "https://api.github.com/users/${{ env.GITHUB_USER }}/repos?per_page=100" | jq -r --arg user "${{ env.GITHUB_USER }}" '.[] | "<details>\n<summary>**\($user/\(.name))**</summary>\n<br>\(.description // "This project didn'\''t provide a description")\n<br>\(.html_url)<br></details>"' | sed 's/\\/\\\\/g' > projects.yaml
+
+      - name: Exibir projetos
+        run: |
+          cat projects.yaml
 
       - name: Atualizar README.md
         run: |
