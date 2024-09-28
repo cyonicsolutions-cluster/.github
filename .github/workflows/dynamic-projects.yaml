@@ -19,7 +19,7 @@ jobs:
       - name: Obter projetos do GitHub
         id: get_repos
         run: |
-          echo "Obtendo repositórios..."
+          echo Obtendo repositórios...
           curl -s "https://api.github.com/users/${{ env.GITHUB_USER }}/repos" | jq -r '.[] | "**(.name)**\n <br> \(.description // "This project didn't provide an description")\n <br> \(.html_url)"' > projects.yaml
 
       - name: Atualizar README.md
