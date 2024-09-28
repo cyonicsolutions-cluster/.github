@@ -25,7 +25,7 @@ jobs:
       - name: Atualizar README.md
         run: |
           echo "Atualizando README.md..."
-          sed -i '/<!-- <projects> -->/,/<!-- <\/projects> -->/{//!d}; /<!-- <projects> -->/r projects.yaml' README.md
+          sed -i '/<!-- <projects> -->/,/<!-- <\/projects> -->/{//!d}; /<!-- <projects> -->/r projects.yaml' ./profile/README.md
 
       - name: Commit e push das alterações
         run: |
