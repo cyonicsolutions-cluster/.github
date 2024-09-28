@@ -17,6 +17,9 @@ Please refer to [individual repositories](https://github.com/orgs/getcyonic/repo
 ## Projects Database
 
 <!-- <projects> -->
+- nome: .github
+  descricao: Sem descrição
+  link: https://github.com/cyonicsolutions-cluster/.github
 <!-- </projects> -->
 
 Thank you for visiting,
