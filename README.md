@@ -14,6 +14,11 @@ If you'd like to contribute to our projects or have any suggestions, please reac
 ## License
 Please refer to [individual repositories](https://github.com/orgs/getcyonic/repositories) for specific licensing information.
 
+## Projects Database
+
+<!-- <projects> -->
+<!-- </projects> -->
+
 Thank you for visiting,
 
 [@Cluster](https://github.com/cyonicsolutions-cluster) •
