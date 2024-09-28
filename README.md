@@ -15,13 +15,11 @@ If you'd like to contribute to our projects or have any suggestions, please reac
 Please refer to [individual repositories](https://github.com/orgs/getcyonic/repositories) for specific licensing information.
 
 ## Projects Database
-<details>
 <!-- <projects> -->
 *.github*
 <br>This project didn't provide a description
 <br>https://github.com/cyonicsolutions-cluster/.github
 <!-- </projects> -->
-</details>
 
 ---
 
