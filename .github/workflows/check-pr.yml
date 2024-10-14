@@ -2,8 +2,12 @@ name: Check All Repos for Pull Requests
 
 on:
   schedule:
-    - cron: '0 * * * *' # Executa a cada hora (a cada 60 minutos)
+    - cron: '0 7-18 * * 1-5' # Runs every hour, between 07:00 and 18:00, Monday through Friday.
   workflow_dispatch: # Permite que o workflow seja executado manualmente
+
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
   check_prs:
@@ -12,13 +16,27 @@ jobs:
     steps:
       - name: Check repositories in the organization
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # O token padrão do GitHub Actions
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ORG="cyonicsolutions-cluster"
           PR_MESSAGE="This repository only accepts mirror pushes. Pull requests cannot be accepted."
+          
+          # Check if the token is set
+          if [ -z "$GITHUB_TOKEN" ]; then
+            echo "GITHUB_TOKEN is not set. Exiting..."
+            exit 1
+          fi
 
           # Obter a lista de repositórios na organização
-          repos=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/orgs/$ORG/repos?per_page=100" | jq -r '.[].full_name')
+          response=$(curl -s -o repos_response.txt -w "%{http_code}" -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/orgs/$ORG/repos?per_page=100")
+
+          if [ "$response" -ne 200 ]; then
+            echo "Error: Unable to fetch repositories. Status code: $response"
+            cat repos_response.txt
+            exit 1
+          fi
+
+          repos=$(cat repos_response.txt | jq -r '.[].full_name')
 
           for repo in $repos; do
             echo "Checking repository: $repo"
@@ -47,10 +65,6 @@ jobs:
                 curl -s -X PATCH -H "Authorization: token $GITHUB_TOKEN" \
                   -d "{\"state\": \"closed\"}" \
                   "https://api.github.com/repos/$repo/pulls/$pr_number"
-
-                # Deletar o PR (se necessário)
-                # curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
-                #   "https://api.github.com/repos/$repo/pulls/$pr_number"
               else
                 echo "$pr_author is a member of the organization. Not closing the PR."
               fi
