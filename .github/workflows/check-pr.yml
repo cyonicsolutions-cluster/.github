@@ -3,6 +3,7 @@ name: Check All Repos for Pull Requests
 on:
   schedule:
     - cron: '0 * * * *' # Executa a cada hora (a cada 60 minutos)
+  workflow_dispatch:
 
 jobs:
   check_prs:
