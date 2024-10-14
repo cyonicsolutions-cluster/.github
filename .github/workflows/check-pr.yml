@@ -19,7 +19,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ORG="cyonicsolutions-cluster"
-          PR_MESSAGE="This repository only accepts mirror pushes. Pull requests cannot be accepted."
+          PR_MESSAGE="This repository only accepts mirror pushes.\nPull requests cannot be accepted without you being from our company."
           
           # Check if the token is set
           if [ -z "$GITHUB_TOKEN" ]; then
