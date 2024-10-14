@@ -3,10 +3,10 @@ name: Check All Repos for Pull Requests
 on:
   schedule:
     - cron: '0 7-18 * * 1-5' # Runs every hour, between 07:00 and 18:00, Monday through Friday.
-  workflow_dispatch: # Permite que o workflow seja executado manualmente
+  workflow_dispatch: # Allows the workflow to be run manually
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
 
 jobs:
@@ -17,17 +17,19 @@ jobs:
       - name: Check repositories in the organization
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_USER: ${{ github.actor }} # User who provided the token
+          TARGET_REPO: "getcyonic/target-repo" # Alvo onde a PR será criada
         run: |
           ORG="cyonicsolutions-cluster"
-          PR_MESSAGE="This repository only accepts mirror pushes.\nPull requests cannot be accepted without you being from our company."
-          
+          PR_MESSAGE="**Pull Requests are not accepted.** Please visit [this link](https://github.com/getcyonic/${TARGET_REPO}/compare) and submit your pull request there with the same content.\nThank you!"
+
           # Check if the token is set
           if [ -z "$GITHUB_TOKEN" ]; then
             echo "GITHUB_TOKEN is not set. Exiting..."
             exit 1
           fi
 
-          # Obter a lista de repositórios na organização
+          # Fetch the list of repositories in the organization
           response=$(curl -s -o repos_response.txt -w "%{http_code}" -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/orgs/$ORG/repos?per_page=100")
 
           if [ "$response" -ne 200 ]; then
@@ -41,32 +43,44 @@ jobs:
           for repo in $repos; do
             echo "Checking repository: $repo"
 
-            # Obter PRs abertos
-            prs=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$repo/pulls" | jq -r '.[] | {number: .number, user: .user.login}')
+            # Get open PRs
+            prs=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$repo/pulls" | jq -r '.[] | {number: .number, user: .user.login, title: .title, body: .body, head: .head.ref, base: .base.ref}')
 
             for pr_info in $(echo "$prs" | jq -c '.'); do
               pr_number=$(echo "$pr_info" | jq -r '.number')
               pr_author=$(echo "$pr_info" | jq -r '.user')
+              pr_title=$(echo "$pr_info" | jq -r '.title')
+              pr_body=$(echo "$pr_info" | jq -r '.body')
+              pr_head=$(echo "$pr_info" | jq -r '.head')
+              pr_base=$(echo "$pr_info" | jq -r '.base')
 
               echo "Found open PR: $pr_number in $repo by $pr_author"
 
-              # Verificar se o autor do PR é um membro da organização
+              # Check if the PR author is a member of the organization
               member_check=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/orgs/$ORG/members/$pr_author")
 
-              if [ "$(echo "$member_check" | jq -r '.message')" == "Not Found" ]; then
-                echo "$pr_author is not a member of the organization."
-
-                # Comentar no PR
+                # Comment on the PR
                 curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
                   -d "{\"body\": \"$PR_MESSAGE\"}" \
                   "https://api.github.com/repos/$repo/issues/$pr_number/comments"
 
-                # Fechar o PR
-                curl -s -X PATCH -H "Authorization: token $GITHUB_TOKEN" \
-                  -d "{\"state\": \"closed\"}" \
-                  "https://api.github.com/repos/$repo/pulls/$pr_number"
-              else
-                echo "$pr_author is a member of the organization. Not closing the PR."
+                # Create a new pull request in the target repository
+                new_pr_response=$(curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
+                  -d "{\"title\": \"$pr_title\", \"head\": \"$pr_head\", \"base\": \"$pr_base\", \"body\": \"$pr_body\"}" \
+                  "https://api.github.com/repos/$TARGET_REPO/pulls")
+
+                new_pr_number=$(echo "$new_pr_response" | jq -r '.number')
+
+                if [ "$new_pr_number" != "null" ]; then
+                  echo "Created a new PR: #$new_pr_number in $TARGET_REPO"
+                else
+                  echo "Failed to create PR in $TARGET_REPO"
+                  echo "$new_pr_response"
+                fi
+
+                # Add the user as a collaborator to the target repository
+                curl -s -X PUT -H "Authorization: token $GITHUB_TOKEN" \
+                  "https://api.github.com/repos/$TARGET_REPO/collaborators/$GITHUB_USER"
               fi
             done
           done
