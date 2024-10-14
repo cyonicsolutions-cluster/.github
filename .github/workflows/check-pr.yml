@@ -59,6 +59,9 @@ jobs:
               # Check if the PR author is a member of the organization
               member_check=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/orgs/$ORG/members/$pr_author")
 
+              if [ "$(echo "$member_check" | jq -r '.message')" == "Not Found" ]; then
+                echo "$pr_author is not a member of the organization."
+
                 # Comment on the PR
                 curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
                   -d "{\"body\": \"$PR_MESSAGE\"}" \
@@ -81,6 +84,8 @@ jobs:
                 # Add the user as a collaborator to the target repository
                 curl -s -X PUT -H "Authorization: token $GITHUB_TOKEN" \
                   "https://api.github.com/repos/$TARGET_REPO/collaborators/$GITHUB_USER"
+              else
+                echo "$pr_author is a member of the organization. Not locking the PR."
               fi
             done
           done
