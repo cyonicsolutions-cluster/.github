@@ -2,7 +2,7 @@ name: Check All Repos for Pull Requests
 
 on:
   schedule:
-    - cron: '0 7-18 * * 1-5' # Runs every hour, between 07:00 and 18:00, Monday through Friday.
+    - cron: '0 7 * * 1-5' # Runs every hour, between 07:00 and 18:00, Monday through Friday.
   workflow_dispatch: # Allows the workflow to be run manually
 
 permissions:
@@ -21,7 +21,7 @@ jobs:
           TARGET_REPO: "getcyonic/target-repo" # Alvo onde a PR será criada
         run: |
           ORG="cyonicsolutions-cluster"
-          PR_MESSAGE="**Pull Requests are not accepted.** Please visit [this link](https://github.com/getcyonic/${TARGET_REPO}/compare) and submit your pull request there with the same content.\nThank you!"
+          PR_MESSAGE="**Pull Requests are not accepted.** Please visit https://github.com/getcyonic/${TARGET_REPO}/compare and submit your pull request there with the same content.\nThank you!"
 
           # Check if the token is set
           if [ -z "$GITHUB_TOKEN" ]; then
