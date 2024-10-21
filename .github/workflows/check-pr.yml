@@ -1,64 +1,52 @@
-name: Check All Repos for Pull Requests
+name: Auto Close, Delete, and Lock Pull Requests
 
 on:
   pull_request:
-    types: [opened, reopened]
-  schedule:
-    - cron: '0 0 * * 1-5'
-  workflow_dispatch:
+    types: [opened, reopened]  # Executa automaticamente quando um PR é aberto ou reaberto
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
 
 jobs:
-  check_prs:
+  close_lock_prs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check repositories in the organization
+      - name: Close, Lock Pull Requests
         env:
-          PR_TOKEN: ${{ secrets.PULL_REQUESTS_TOKEN }}
+          PR_TOKEN: ${{ secrets.PULL_REQUESTS_TOKEN }}  # Token para autenticação
+          GITHUB_USER: ${{ github.actor }}  # Usuário que forneceu o token
         run: |
           ORG="cyonicsolutions-cluster"
-          PR_MESSAGE="This repository only accepts mirror pushes.\nPull requests cannot be accepted without you being from our company."
+          REPO="${{ github.repository }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
+          CLOSE_MESSAGE="**Pull requests from outside the organization are not accepted.**\n\nPlease visit https://github.com/getcyonic/$REPO/pulls and submit your pull request there with the same content.\nThank you!"
 
-          # Teste do PR_TOKEN
-          # Removido por questoes de segurança
-
-          # Obter a lista de repositórios na organização
-          response=$(curl -s -o repos_response.txt -w "%{http_code}" -H "Authorization: token $PR_TOKEN" "https://api.github.com/orgs/$ORG/repos?per_page=100")
-
-          if [ "$response" -ne 200 ]; then
-            echo "Error: Unable to fetch repositories. Status code: $response"
-            cat repos_response.txt
+          # Verifica se o token está definido
+          if [ -z "$PR_TOKEN" ]; then
+            echo "PR_TOKEN is not set. Exiting..."
             exit 1
           fi
 
-          repos=$(cat repos_response.txt | jq -r '.[].full_name')
+          echo "Pull Request #$PR_NUMBER opened by $PR_AUTHOR in repository $REPO"
 
-          for repo in $repos; do
-            echo "Checking repository: $repo"
+          # Comenta no PR com a mensagem de fechamento
+          curl -s -X POST -H "Authorization: token $PR_TOKEN" \
+            -d "{\"body\": \"$CLOSE_MESSAGE\"}" \
+            "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments"
 
-            # Obter PRs abertos
-            prs=$(curl -s -H "Authorization: token $PR_TOKEN" "https://api.github.com/repos/$repo/pulls" | jq -r '.[] | {number: .number, user: .user.login}')
+          # Fecha o PR
+          curl -s -X PATCH -H "Authorization: token $PR_TOKEN" \
+            -d "{\"state\": \"closed\"}" \
+            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER"
 
-            for pr_info in $(echo "$prs" | jq -c '.'); do
-              pr_number=$(echo "$pr_info" | jq -r '.number')
-              pr_author=$(echo "$pr_info" | jq -r '.user')
+          echo "Closed pull request #$PR_NUMBER in $REPO."
 
-              echo "Found open PR: $pr_number in $repo by $pr_author"
+          # Trava a conversa (lock)
+          curl -s -X PUT -H "Authorization: token $PR_TOKEN" \
+            -d "{\"lock_reason\": \"resolved\"}" \
+            "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/lock"
 
-              echo "Closing $pr_author pull request."
-
-              # Comentar no PR
-              curl -s -X POST -H "Authorization: token $PR_TOKEN" \
-                -d "{\"body\": \"$PR_MESSAGE\"}" \
-                "https://api.github.com/repos/$repo/issues/$pr_number/comments"
-
-              # Fechar o PR
-              curl -s -X PATCH -H "Authorization: token $PR_TOKEN" \
-                -d "{\"state\": \"closed\"}" \
-                "https://api.github.com/repos/$repo/pulls/$pr_number"
-            done
-          done
+          echo "Locked pull request #$PR_NUMBER in $REPO."
