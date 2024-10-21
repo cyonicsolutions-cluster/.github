@@ -18,16 +18,16 @@ jobs:
     steps:
       - name: Check repositories in the organization
         env:
-          GITHUB_TOKEN: ${{ secrets.PULL_REQUESTS_TOKEN }}
+          PR_TOKEN: ${{ secrets.PULL_REQUESTS_TOKEN }}
         run: |
           ORG="cyonicsolutions-cluster"
           PR_MESSAGE="This repository only accepts mirror pushes.\nPull requests cannot be accepted without you being from our company."
 
-          # Teste do GITHUB_TOKEN
+          # Teste do PR_TOKEN
           # Removido por questoes de segurança
 
           # Obter a lista de repositórios na organização
-          response=$(curl -s -o repos_response.txt -w "%{http_code}" -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/orgs/$ORG/repos?per_page=100")
+          response=$(curl -s -o repos_response.txt -w "%{http_code}" -H "Authorization: token $PR_TOKEN" "https://api.github.com/orgs/$ORG/repos?per_page=100")
 
           if [ "$response" -ne 200 ]; then
             echo "Error: Unable to fetch repositories. Status code: $response"
@@ -41,7 +41,7 @@ jobs:
             echo "Checking repository: $repo"
 
             # Obter PRs abertos
-            prs=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$repo/pulls" | jq -r '.[] | {number: .number, user: .user.login}')
+            prs=$(curl -s -H "Authorization: token $PR_TOKEN" "https://api.github.com/repos/$repo/pulls" | jq -r '.[] | {number: .number, user: .user.login}')
 
             for pr_info in $(echo "$prs" | jq -c '.'); do
               pr_number=$(echo "$pr_info" | jq -r '.number')
@@ -52,12 +52,12 @@ jobs:
               echo "Closing $pr_author pull request."
 
               # Comentar no PR
-              curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
+              curl -s -X POST -H "Authorization: token $PR_TOKEN" \
                 -d "{\"body\": \"$PR_MESSAGE\"}" \
                 "https://api.github.com/repos/$repo/issues/$pr_number/comments"
 
               # Fechar o PR
-              curl -s -X PATCH -H "Authorization: token $GITHUB_TOKEN" \
+              curl -s -X PATCH -H "Authorization: token $PR_TOKEN" \
                 -d "{\"state\": \"closed\"}" \
                 "https://api.github.com/repos/$repo/pulls/$pr_number"
             done
