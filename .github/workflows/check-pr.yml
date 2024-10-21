@@ -21,7 +21,7 @@ jobs:
           REPO="${{ github.repository }}"
           PR_NUMBER="${{ github.event.pull_request.number }}"
           PR_AUTHOR="${{ github.event.pull_request.user.login }}"
-          CLOSE_MESSAGE="**Pull request submissions are not accepted.**\n\nPlease visit https://github.com/getcyonic/$REPO/pulls and submit your pull request there with the same content.\nThank you!"
+          CLOSE_MESSAGE="**Pull request submissions are not accepted.**\n\nPlease visit https://github.com/getcyonic/${REPO}/pulls and submit your pull request there with the same content.\nThank you!"
 
           echo "Processing Pull Request #$PR_NUMBER opened by $PR_AUTHOR in repository $REPO"
 
