@@ -2,7 +2,7 @@ name: Auto Close, Delete, and Lock Pull Requests
 
 on:
   schedule:
-    - cron: '0 0 * * 1'  # Executa toda segunda-feira à meia-noite
+    - cron: '0 0 * * 1-5'  # Executa toda segunda-feira à meia-noite
   workflow_dispatch:  # Permite execução manual
 
 permissions:
