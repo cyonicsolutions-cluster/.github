@@ -1,11 +1,9 @@
 name: Auto Close, Delete, and Lock Pull Requests
 
 on:
-  pull_request_target:
-    types: [opened, reopened]  # Executa automaticamente quando um pull request é reaberto
   schedule:
-    - cron: '0 0 * * 1' # Runs every hour, between 07:00 and 18:00, Monday through Friday.
-  workflow_dispatch:
+    - cron: '0 0 * * 1'  # Executa toda segunda-feira à meia-noite
+  workflow_dispatch:  # Permite execução manual
 
 permissions:
   contents: write
@@ -16,18 +14,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Close, Delete, and Lock Pull Requests
+      - name: Close, Delete, and Lock Pull Requests in All Repositories
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Certifique-se de que este token esteja correto
-          ORG_NAME: cyonicsolutions-cluster  # Substitua pelo nome da sua organização
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Certifique-se de que este token tenha permissões corretas
+          ORG_NAME: cyonicsolutions-cluster  # Nome da organização
         run: |
-          REPO="${{ github.repository }}"
-          PR_NUMBER="${{ github.event.pull_request.number }}"
-          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
-          CLOSE_MESSAGE="**Pull request submissions are not accepted.**\n\nPlease visit https://github.com/getcyonic/$REPO_NAME/pulls and submit your pull request there with the same content.\nThank you!"
-
-          echo "Processing Pull Request #$PR_NUMBER opened by $PR_AUTHOR in repository $REPO"
-
           # Obtenha todos os repositórios da organização
           REPOS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
             "https://api.github.com/orgs/$ORG_NAME/repos?per_page=100" | jq -r '.[].full_name')
@@ -35,36 +26,39 @@ jobs:
           for REPO_NAME in $REPOS; do
             echo "Checking pull requests in $REPO_NAME"
 
-            # Busque pull requests abertas
-            OPEN_PR=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-              "https://api.github.com/repos/$REPO_NAME/pulls" | jq -r '.[] | select(.number == '"$PR_NUMBER"') | .number')
+            # Busque todas as pull requests abertas no repositório atual
+            OPEN_PRS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+              "https://api.github.com/repos/$REPO_NAME/pulls" | jq -r '.[].number')
 
-            if [ "$OPEN_PR" ]; then
-              echo "Found pull request #$OPEN_PR in $REPO_NAME"
+            for PR_NUMBER in $OPEN_PRS; do
+              echo "Processing Pull Request #$PR_NUMBER in repository $REPO_NAME"
 
-              # Comenta no pull request
+              # Defina a mensagem de fechamento
+              CLOSE_MESSAGE="**Pull request submissions are not accepted.**\n\nPlease visit https://github.com/getcyonic/$REPO_NAME/pulls and submit your pull request there with the same content.\nThank you!"
+
+              # Comente no pull request
               curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
                 -d "{\"body\": \"$CLOSE_MESSAGE\"}" \
-                "https://api.github.com/repos/$REPO_NAME/issues/$OPEN_PR/comments" || echo "Failed to comment on pull request #$OPEN_PR"
+                "https://api.github.com/repos/$REPO_NAME/issues/$PR_NUMBER/comments" || echo "Failed to comment on pull request #$PR_NUMBER"
 
               # Fecha o pull request
               curl -s -X PATCH -H "Authorization: token $GITHUB_TOKEN" \
                 -d "{\"state\": \"closed\"}" \
-                "https://api.github.com/repos/$REPO_NAME/pulls/$OPEN_PR" || echo "Failed to close PR #$OPEN_PR"
+                "https://api.github.com/repos/$REPO_NAME/pulls/$PR_NUMBER" || echo "Failed to close PR #$PR_NUMBER"
 
-              echo "Closed pull request #$OPEN_PR in $REPO_NAME."
+              echo "Closed pull request #$PR_NUMBER in $REPO_NAME."
 
               # Bloqueia a conversa
               curl -s -X PUT -H "Authorization: token $GITHUB_TOKEN" \
                 -d "{\"lock_reason\": \"resolved\"}" \
-                "https://api.github.com/repos/$REPO_NAME/issues/$OPEN_PR/lock" || echo "Failed to lock PR #$OPEN_PR"
+                "https://api.github.com/repos/$REPO_NAME/issues/$PR_NUMBER/lock" || echo "Failed to lock PR #$PR_NUMBER"
 
-              echo "Locked pull request #$OPEN_PR in $REPO_NAME."
+              echo "Locked pull request #$PR_NUMBER in $REPO_NAME."
 
               # Deleta o pull request (se aplicável)
               curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
-                "https://api.github.com/repos/$REPO_NAME/pulls/$OPEN_PR" || echo "Failed to delete PR #$OPEN_PR"
+                "https://api.github.com/repos/$REPO_NAME/pulls/$PR_NUMBER" || echo "Failed to delete PR #$PR_NUMBER"
 
-              echo "Deleted pull request #$OPEN_PR in $REPO_NAME."
-            fi
+              echo "Deleted pull request #$PR_NUMBER in $REPO_NAME."
+            done
           done
