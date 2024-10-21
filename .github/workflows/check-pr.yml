@@ -38,7 +38,7 @@ jobs:
             exit 1
           fi
 
-          repos=$(cat repos_response.txt | jq -r '.[].full_name')
+          repos=$(jq -r '.[].full_name' repos_response.txt)
 
           for repo in $repos; do
             echo "Checking repository: $repo"
@@ -46,10 +46,11 @@ jobs:
             # Check for open PRs
             prs_response=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$repo/pulls")
             echo "PRs response: $prs_response" # Debug line
-            prs=$(echo "$prs_response" | jq -r '.[] | {number: .number, user: .user.login, title: .title, body: .body, head: .head.ref, base: .base.ref}' || echo "[]")
+            
+            prs=$(echo "$prs_response" | jq -c '.[]? | {number: .number, user: .user.login, title: .title, body: .body, head: .head.ref, base: .base.ref}' || echo "[]")
 
             if [[ "$prs" != "[]" ]]; then
-              for pr_info in $(echo "$prs" | jq -c '.'); do
+              for pr_info in $prs; do
                 pr_number=$(echo "$pr_info" | jq -r '.number')
                 pr_author=$(echo "$pr_info" | jq -r '.user')
                 pr_title=$(echo "$pr_info" | jq -r '.title')
@@ -95,10 +96,11 @@ jobs:
             # Check for open issues
             issues_response=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$repo/issues?state=open")
             echo "Issues response: $issues_response" # Debug line
-            issues=$(echo "$issues_response" | jq -r '.[] | {number: .number, user: .user.login, title: .title, body: .body}' || echo "[]")
+            
+            issues=$(echo "$issues_response" | jq -c '.[]? | {number: .number, user: .user.login, title: .title, body: .body}' || echo "[]")
 
             if [[ "$issues" != "[]" ]]; then
-              for issue_info in $(echo "$issues" | jq -c '.'); do
+              for issue_info in $issues; do
                 issue_number=$(echo "$issue_info" | jq -r '.number')
                 issue_author=$(echo "$issue_info" | jq -r '.user')
                 issue_title=$(echo "$issue_info" | jq -r '.title')
