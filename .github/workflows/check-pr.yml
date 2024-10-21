@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: Close, Delete, and Lock Pull Requests
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Certifique-se de que este token esteja correto
+          GITHUB_TOKEN: ${{ secrets.PULL_REQUESTS_CHECKING_TOKEN }}  # Certifique-se de que este token esteja correto
           GITHUB_USER: ${{ github.actor }}  # Usuário que forneceu o token
         run: |
           REPO="${{ github.repository }}"
