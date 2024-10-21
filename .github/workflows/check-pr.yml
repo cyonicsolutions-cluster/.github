@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Close, Delete, and Lock Pull Requests in All Repositories
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Certifique-se de que este token tenha permissões corretas
+          GITHUB_TOKEN: ${{ secrets.PULL_REQUESTS_CHECKING_TOKEN }}  # Certifique-se de que este token tenha permissões corretas
           ORG_NAME: cyonicsolutions-cluster  # Nome da organização
         run: |
           # Obtenha todos os repositórios da organização
