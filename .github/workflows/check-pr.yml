@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: Close, Delete, and Lock Pull Requests
         env:
-          GITHUB_TOKEN: ${{ secrets.PULL_REQUESTS_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PULL_REQUESTS_TOKEN }} # Usando seu token de acesso pessoal
           GITHUB_USER: ${{ github.actor }} # Usuário que forneceu o token
         run: |
           ORG="cyonicsolutions-cluster"
@@ -51,8 +51,8 @@ jobs:
 
           echo "Locked pull request #$PR_NUMBER in $REPO."
 
-          # Deleta o pull request (remover se não desejar deletar)
-          curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
-            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER"
+          # O GitHub não permite deletar pull requests. Esta linha pode ser removida.
+          # curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
+          #   "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER"
 
           echo "Deleted pull request #$PR_NUMBER from $REPO."
