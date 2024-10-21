@@ -1,4 +1,4 @@
-name: Check All Repos for Pull Requests and Issues
+name: Check All Repos for Pull Requests
 
 on:
   schedule:
@@ -8,10 +8,9 @@ on:
 permissions:
   contents: write
   pull-requests: write
-  issues: write # Permissão para gerenciar issues
 
 jobs:
-  check_prs_and_issues:
+  check_prs:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,11 +18,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_USER: ${{ github.actor }} # User who provided the token
-          TARGET_REPO: "getcyonic/target-repo" # Alvo onde a Issue/PR será criada
+          TARGET_REPO: "getcyonic/target-repo" # Alvo onde a PR será criada
         run: |
           ORG="cyonicsolutions-cluster"
           PR_MESSAGE="**Pull Requests are not accepted.** Please visit https://github.com/getcyonic/${TARGET_REPO}/compare and submit your pull request there with the same content.\nThank you!"
-          ISSUE_MESSAGE="**Issues are not accepted.** Please visit https://github.com/getcyonic/${TARGET_REPO}/issues to submit your issue there.\nThank you!"
 
           # Check if the token is set
           if [ -z "$GITHUB_TOKEN" ]; then
@@ -88,50 +86,6 @@ jobs:
                   "https://api.github.com/repos/$TARGET_REPO/collaborators/$GITHUB_USER"
               else
                 echo "$pr_author is a member of the organization. Not locking the PR."
-              fi
-            done
-
-            # Check for open issues
-            issues=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$repo/issues?state=open" | jq -r '.[] | {number: .number, user: .user.login, title: .title, body: .body}')
-
-            for issue_info in $(echo "$issues" | jq -c '.'); do
-              issue_number=$(echo "$issue_info" | jq -r '.number')
-              issue_author=$(echo "$issue_info" | jq -r '.user')
-              issue_title=$(echo "$issue_info" | jq -r '.title')
-              issue_body=$(echo "$issue_info" | jq -r '.body')
-
-              echo "Found open issue: $issue_number in $repo by $issue_author"
-
-              # Check if the issue author is a member of the organization
-              member_check=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/orgs/$ORG/members/$issue_author")
-
-              if [ "$(echo "$member_check" | jq -r '.message')" == "Not Found" ]; then
-                echo "$issue_author is not a member of the organization."
-
-                # Comment on the issue
-                curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
-                  -d "{\"body\": \"$ISSUE_MESSAGE\"}" \
-                  "https://api.github.com/repos/$repo/issues/$issue_number/comments"
-
-                # Create a new issue in the target repository
-                new_issue_response=$(curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
-                  -d "{\"title\": \"$issue_title\", \"body\": \"$issue_body\"}" \
-                  "https://api.github.com/repos/$TARGET_REPO/issues")
-
-                new_issue_number=$(echo "$new_issue_response" | jq -r '.number')
-
-                if [ "$new_issue_number" != "null" ]; then
-                  echo "Created a new issue: #$new_issue_number in $TARGET_REPO"
-                else
-                  echo "Failed to create issue in $TARGET_REPO"
-                  echo "$new_issue_response"
-                fi
-
-                # Add the user as a collaborator to the target repository
-                curl -s -X PUT -H "Authorization: token $GITHUB_TOKEN" \
-                  "https://api.github.com/repos/$TARGET_REPO/collaborators/$GITHUB_USER"
-              else
-                echo "$issue_author is a member of the organization. Not locking the issue."
               fi
             done
           done
