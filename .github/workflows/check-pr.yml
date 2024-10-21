@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Check repositories in the organization
         env:
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # Usando seu token pessoal
+          GITHUB_TOKEN: ${{ secrets.PULL_REQUESTS_TOKEN }}  # Usando seu token pessoal
         run: |
           ORG="cyonicsolutions-cluster"
           PR_MESSAGE="This repository only accepts mirror pushes.\nPull requests cannot be accepted without you being from our company."
