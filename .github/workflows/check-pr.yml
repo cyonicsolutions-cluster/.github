@@ -18,15 +18,17 @@ jobs:
     steps:
       - name: Check repositories in the organization
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}  # Usando seu token pessoal
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # Usando seu token pessoal
         run: |
           ORG="cyonicsolutions-cluster"
           PR_MESSAGE="This repository only accepts mirror pushes.\nPull requests cannot be accepted without you being from our company."
 
-          # Check if the token is set
+          # Teste do GITHUB_TOKEN
           if [ -z "$GITHUB_TOKEN" ]; then
             echo "GITHUB_TOKEN is not set. Exiting..."
             exit 1
+          else
+            echo "GITHUB_TOKEN is set."
           fi
 
           # Obter a lista de repositórios na organização
