@@ -2,7 +2,7 @@ name: Auto Close, Delete, and Lock Pull Requests
 
 on:
   pull_request:
-    types: [opened, reopened]
+    types: [opened]
 
 permissions:
   contents: write
@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: Close, Delete, and Lock Pull Requests
         env:
-          GITHUB_TOKEN: ${{ github.token }}  # Referenciando o GITHUB_TOKEN corretamente
+          GITHUB_TOKEN: ${{ secrets.PULL_REQUESTS_CHECKING_TOKEN }}  # Referenciando o GITHUB_TOKEN corretamente
           GITHUB_USER: ${{ github.actor }}    # Usuário que forneceu o token
         run: |
           ORG="cyonicsolutions-cluster"
