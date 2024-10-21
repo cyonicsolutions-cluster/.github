@@ -21,17 +21,13 @@ jobs:
           REPO="${{ github.repository }}"
           PR_NUMBER="${{ github.event.pull_request.number }}"
           PR_AUTHOR="${{ github.event.pull_request.user.login }}"
-          CLOSE_MESSAGE="**Pull request submissions are not accepted.**\n\nPlease visit https://github.com/getcyonic/${REPO}/pulls and submit your pull request there with the same content.\nThank you!"
+          CLOSE_MESSAGE="**Pull request submissions are not accepted.**\n\nPlease visit https://github.com/getcyonic/$REPO/pulls and submit your pull request there with the same content.\nThank you!"
 
           echo "Processing Pull Request #$PR_NUMBER opened by $PR_AUTHOR in repository $REPO"
 
-          # Obtem o commit_id do PR
-          COMMIT_ID=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER" | jq -r '.head.sha')
-
           # Comenta no pull request como uma revisão
           curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
-            -d "{\"body\": \"$CLOSE_MESSAGE\", \"commit_id\": \"$COMMIT_ID\", \"path\": \"\", \"position\": 1}" \
+            -d "{\"body\": \"$CLOSE_MESSAGE\"}" \
             "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/comments" || echo "Failed to comment on pull request #$PR_NUMBER"
 
           # Fecha o pull request
