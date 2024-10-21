@@ -1,0 +1,52 @@
+name: Disable Issues for All Repositories
+
+on:
+  workflow_dispatch: # Permite executar manualmente o workflow
+  schedule:
+    - cron: '0 0 * * 1' # Runs every hour, between 07:00 and 18:00, Monday through Friday.
+
+
+permissions:
+  contents: write # Permissão para modificar configurações do repositório
+
+jobs:
+  disable_issues:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get all repositories
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ORG="your-organization" # Substitua pelo nome da sua organização
+
+          echo "Fetching all repositories for organization $ORG..."
+
+          # Obtém a lista de repositórios da organização
+          repos=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/orgs/$ORG/repos?per_page=100" | jq -r '.[].name')
+
+          # Itera por cada repositório
+          for repo in $repos; do
+            echo "Checking repository: $repo"
+
+            # Verifica se as issues estão habilitadas
+            repo_data=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+              "https://api.github.com/repos/$ORG/$repo")
+
+            has_issues=$(echo "$repo_data" | jq '.has_issues')
+
+            if [ "$has_issues" = "true" ]; then
+              echo "Disabling issues for repository $repo..."
+
+              # Desativa as issues no repositório via API
+              curl -X PATCH -H "Authorization: token $GITHUB_TOKEN" \
+                -H "Accept: application/vnd.github.v3+json" \
+                "https://api.github.com/repos/$ORG/$repo" \
+                -d '{"has_issues": false}'
+
+              echo "Issues disabled for repository $repo."
+            else
+              echo "Issues are already disabled for repository $repo."
+            fi
+          done
