@@ -3,7 +3,9 @@ name: Disable Issues for All Repositories
 on:
   workflow_dispatch: # Permite executar manualmente o workflow
   schedule:
-    - cron: '0 0 * * 1' # Runs every hour, between 07:00 and 18:00, Monday through Friday.
+    - cron: '0 0 * * 1-5' # Runs every hour, between 07:00 and 18:00, Monday through Friday.
+  issues:
+    types: [opened]
 
 
 permissions:
