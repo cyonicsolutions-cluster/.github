@@ -2,8 +2,8 @@ name: Check All Repos for Pull Requests and Issues
 
 on:
   schedule:
-    - cron: '0 7 * * 1-5' # Runs at 07:00, Monday through Friday. 
-  workflow_dispatch: # Manual Run
+    - cron: '0 7 * * 1-5'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -43,11 +43,11 @@ jobs:
           for repo in $repos; do
             echo "Checking repository: $repo"
 
-            prs=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$repo/pulls" | jq -r '.[] | {number: .number, user: .user.login, title: .title, body: .body, head: .head.ref, base: .base.ref}')
+            prs=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$repo/pulls" | jq -r '.[] | {number: .number, user: .user.login, title: .title, body: .body, head: .head.ref, base: .base.ref}' || echo "[]")
 
             for pr_info in $(echo "$prs" | jq -c '.'); do
               pr_number=$(echo "$pr_info" | jq -r '.number')
-              pr_author=$(echo "$pr_info" | jq -r '.user.login')
+              pr_author=$(echo "$pr_info" | jq -r '.user')
               pr_title=$(echo "$pr_info" | jq -r '.title')
               pr_body=$(echo "$pr_info" | jq -r '.body')
               pr_head=$(echo "$pr_info" | jq -r '.head')
@@ -84,7 +84,7 @@ jobs:
               fi
             done
 
-            issues=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$repo/issues?state=open" | jq -r '.[] | {number: .number, user: .user.login, title: .title, body: .body}')
+            issues=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$repo/issues?state=open" | jq -r '.[] | {number: .number, user: .user.login, title: .title, body: .body}' || echo "[]")
 
             for issue_info in $(echo "$issues" | jq -c '.'); do
               issue_number=$(echo "$issue_info" | jq -r '.number')
