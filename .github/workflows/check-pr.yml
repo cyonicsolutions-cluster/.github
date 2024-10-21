@@ -62,7 +62,7 @@ jobs:
                 member_check=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/orgs/$ORG/members/$pr_author")
                 echo "Member check response: $member_check" # Debug line
 
-                if [ "$(echo "$member_check" | jq -r '.message')" == "Not Found" ]; then
+                if [[ "$(echo "$member_check" | jq -r '.message')" == "Not Found" ]]; then
                   echo "$pr_author is not a member of the organization."
 
                   curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
@@ -75,7 +75,7 @@ jobs:
 
                   new_pr_number=$(echo "$new_pr_response" | jq -r '.number')
 
-                  if [ "$new_pr_number" != "null" ]; then
+                  if [[ "$new_pr_number" != "null" ]]; then
                     echo "Created a new PR: #$new_pr_number in $TARGET_REPO"
                   else
                     echo "Failed to create PR in $TARGET_REPO"
@@ -109,7 +109,7 @@ jobs:
                 member_check=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/orgs/$ORG/members/$issue_author")
                 echo "Member check response: $member_check" # Debug line
 
-                if [ "$(echo "$member_check" | jq -r '.message')" == "Not Found" ]; then
+                if [[ "$(echo "$member_check" | jq -r '.message')" == "Not Found" ]]; then
                   echo "$issue_author is not a member of the organization."
 
                   curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
