@@ -1,26 +1,29 @@
-name: Auto Close Issues
+name: Auto Close and Delete Issues
 
 on:
-  schedule:
-    - cron: '0 7 * * 1-5' # Executa toda segunda a sexta às 07:00
-  workflow_dispatch: # Permite que o workflow seja executado manualmente
+  issues:
+    types: [opened] # Executa automaticamente quando uma issue é aberta
+  workflow_dispatch:
 
 permissions:
   contents: write
   issues: write
 
 jobs:
-  close_issues:
+  close_and_delete_issues:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Close Issues
+      - name: Close and Delete Issues
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_USER: ${{ github.actor }} # Usuário que forneceu o token
         run: |
           ORG="cyonicsolutions-cluster"
-          CLOSE_MESSAGE="**Issue reporting are not accepted.** Please visit https://github.com/getcyonic/$repo/issues and submit your issue report there with the same content.\nThank you!"
+          REPO="${{ github.repository }}"
+          ISSUE_NUMBER="${{ github.event.issue.number }}"
+          ISSUE_AUTHOR="${{ github.event.issue.user.login }}"
+          CLOSE_MESSAGE="**Issue reporting is not accepted.** Please visit https://github.com/getcyonic/$REPO/issues and submit your issue report there with the same content.\nThank you!"
 
           # Verifica se o token está definido
           if [ -z "$GITHUB_TOKEN" ]; then
@@ -28,39 +31,22 @@ jobs:
             exit 1
           fi
 
-          # Obtém a lista de repositórios da organização
-          response=$(curl -s -o repos_response.txt -w "%{http_code}" -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/orgs/$ORG/repos?per_page=100")
+          echo "Issue #$ISSUE_NUMBER opened by $ISSUE_AUTHOR in repository $REPO"
 
-          if [ "$response" -ne 200 ]; then
-            echo "Error: Unable to fetch repositories. Status code: $response"
-            cat repos_response.txt
-            exit 1
-          fi
+          # Comenta na issue com a mensagem de fechamento
+          curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
+            -d "{\"body\": \"$CLOSE_MESSAGE\"}" \
+            "https://api.github.com/repos/$REPO/issues/$ISSUE_NUMBER/comments"
 
-          repos=$(cat repos_response.txt | jq -r '.[].full_name')
+          # Fecha a issue
+          curl -s -X PATCH -H "Authorization: token $GITHUB_TOKEN" \
+            -d "{\"state\": \"closed\"}" \
+            "https://api.github.com/repos/$REPO/issues/$ISSUE_NUMBER"
 
-          for repo in $repos; do
-            echo "Checking repository: $repo"
+          echo "Closed issue #$ISSUE_NUMBER in $REPO."
 
-            # Obtém issues abertas
-            issues=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$repo/issues?state=open" | jq -r '.[] | {number: .number, user: .user.login}')
+          # Deleta a issue
+          curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/$REPO/issues/$ISSUE_NUMBER"
 
-            for issue_info in $(echo "$issues" | jq -c '.'); do
-              issue_number=$(echo "$issue_info" | jq -r '.number')
-              issue_author=$(echo "$issue_info" | jq -r '.user')
-
-              echo "Found open issue: #$issue_number in $repo by $issue_author"
-
-              # Comenta na issue
-              curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
-                -d "{\"body\": \"$CLOSE_MESSAGE\"}" \
-                "https://api.github.com/repos/$repo/issues/$issue_number/comments"
-
-              # Fecha a issue
-              curl -s -X PATCH -H "Authorization: token $GITHUB_TOKEN" \
-                -d "{\"state\": \"closed\"}" \
-                "https://api.github.com/repos/$repo/issues/$issue_number"
-
-              echo "Closed issue #$issue_number in $repo."
-            done
-          done
+          echo "Deleted issue #$ISSUE_NUMBER from $REPO."
