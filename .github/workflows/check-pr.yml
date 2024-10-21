@@ -1,35 +1,35 @@
-name: Check All Repos for Pull Requests
+name: Check All Repos for Pull Requests and Issues
 
 on:
   schedule:
-    - cron: '0 7 * * 1-5' # Runs every hour, between 07:00 and 18:00, Monday through Friday.
-  workflow_dispatch: # Allows the workflow to be run manually
+    - cron: '0 7 * * 1-5' # Runs at 07:00, Monday through Friday. 
+  workflow_dispatch: # Manual Run
 
 permissions:
   contents: write
   pull-requests: write
+  issues: write
 
 jobs:
-  check_prs:
+  check_repos:
     runs-on: ubuntu-latest
 
     steps:
       - name: Check repositories in the organization
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_USER: ${{ github.actor }} # User who provided the token
-          TARGET_REPO: "getcyonic/target-repo" # Alvo onde a PR será criada
+          GITHUB_USER: ${{ github.actor }}
+          TARGET_REPO: "getcyonic/target-repo"
         run: |
           ORG="cyonicsolutions-cluster"
           PR_MESSAGE="**Pull Requests are not accepted.** Please visit https://github.com/getcyonic/${TARGET_REPO}/compare and submit your pull request there with the same content.\nThank you!"
+          ISSUE_MESSAGE="**Issues are not accepted.** Please visit https://github.com/getcyonic/${TARGET_REPO}/issues to submit your issue there.\nThank you!"
 
-          # Check if the token is set
           if [ -z "$GITHUB_TOKEN" ]; then
             echo "GITHUB_TOKEN is not set. Exiting..."
             exit 1
           fi
 
-          # Fetch the list of repositories in the organization
           response=$(curl -s -o repos_response.txt -w "%{http_code}" -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/orgs/$ORG/repos?per_page=100")
 
           if [ "$response" -ne 200 ]; then
@@ -43,12 +43,11 @@ jobs:
           for repo in $repos; do
             echo "Checking repository: $repo"
 
-            # Get open PRs
             prs=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$repo/pulls" | jq -r '.[] | {number: .number, user: .user.login, title: .title, body: .body, head: .head.ref, base: .base.ref}')
 
             for pr_info in $(echo "$prs" | jq -c '.'); do
               pr_number=$(echo "$pr_info" | jq -r '.number')
-              pr_author=$(echo "$pr_info" | jq -r '.user')
+              pr_author=$(echo "$pr_info" | jq -r '.user.login')
               pr_title=$(echo "$pr_info" | jq -r '.title')
               pr_body=$(echo "$pr_info" | jq -r '.body')
               pr_head=$(echo "$pr_info" | jq -r '.head')
@@ -56,18 +55,15 @@ jobs:
 
               echo "Found open PR: $pr_number in $repo by $pr_author"
 
-              # Check if the PR author is a member of the organization
               member_check=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/orgs/$ORG/members/$pr_author")
 
               if [ "$(echo "$member_check" | jq -r '.message')" == "Not Found" ]; then
                 echo "$pr_author is not a member of the organization."
 
-                # Comment on the PR
                 curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
                   -d "{\"body\": \"$PR_MESSAGE\"}" \
                   "https://api.github.com/repos/$repo/issues/$pr_number/comments"
 
-                # Create a new pull request in the target repository
                 new_pr_response=$(curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
                   -d "{\"title\": \"$pr_title\", \"head\": \"$pr_head\", \"base\": \"$pr_base\", \"body\": \"$pr_body\"}" \
                   "https://api.github.com/repos/$TARGET_REPO/pulls")
@@ -81,11 +77,33 @@ jobs:
                   echo "$new_pr_response"
                 fi
 
-                # Add the user as a collaborator to the target repository
                 curl -s -X PUT -H "Authorization: token $GITHUB_TOKEN" \
                   "https://api.github.com/repos/$TARGET_REPO/collaborators/$GITHUB_USER"
               else
                 echo "$pr_author is a member of the organization. Not locking the PR."
+              fi
+            done
+
+            issues=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$repo/issues?state=open" | jq -r '.[] | {number: .number, user: .user.login, title: .title, body: .body}')
+
+            for issue_info in $(echo "$issues" | jq -c '.'); do
+              issue_number=$(echo "$issue_info" | jq -r '.number')
+              issue_author=$(echo "$issue_info" | jq -r '.user')
+              issue_title=$(echo "$issue_info" | jq -r '.title')
+              issue_body=$(echo "$issue_info" | jq -r '.body')
+
+              echo "Found open issue: $issue_number in $repo by $issue_author"
+
+              member_check=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/orgs/$ORG/members/$issue_author")
+
+              if [ "$(echo "$member_check" | jq -r '.message')" == "Not Found" ]; then
+                echo "$issue_author is not a member of the organization."
+
+                curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
+                  -d "{\"body\": \"$ISSUE_MESSAGE\"}" \
+                  "https://api.github.com/repos/$repo/issues/$issue_number/comments"
+              else
+                echo "$issue_author is a member of the organization. Not locking the issue."
               fi
             done
           done
