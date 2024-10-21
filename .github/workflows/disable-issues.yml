@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Get all repositories
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         run: |
           ORG="cyonicsolutions-cluster" # Substitua pelo nome da sua organização
 
