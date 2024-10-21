@@ -20,7 +20,7 @@ jobs:
           GITHUB_USER: ${{ github.actor }} # Usuário que forneceu o token
         run: |
           ORG="cyonicsolutions-cluster"
-          CLOSE_MESSAGE="**This issue has been closed because we do not accept issues.**"
+          CLOSE_MESSAGE="**Issue reporting are not accepted.** Please visit https://github.com/getcyonic/${repo}/compare and submit your pull request there with the same content.\nThank you!"
 
           # Verifica se o token está definido
           if [ -z "$GITHUB_TOKEN" ]; then
