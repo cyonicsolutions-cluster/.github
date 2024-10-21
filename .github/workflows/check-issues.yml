@@ -54,7 +54,8 @@ jobs:
               # Verifica se o autor da issue é um membro da organização
               member_check=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/orgs/$ORG/members/$issue_author")
 
-              if [ "$(echo "$member_check" | jq -r '.message')" == "Not Found" ]; then
+              # Verifica a resposta para determinar se o autor é um membro
+              if [[ "$(echo "$member_check" | jq -r '.message')" == "Not Found" || "$(echo "$member_check" | jq -r '.message')" == "404 Not Found" ]]; then
                 echo "$issue_author is not a member of the organization. Closing issue #$issue_number"
 
                 # Comenta na issue
