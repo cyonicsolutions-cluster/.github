@@ -3,6 +3,8 @@ name: Auto Close, Delete, and Lock Pull Requests
 on:
   pull_request_target:
     types: [opened, reopened]  # Executa automaticamente quando um pull request é reaberto
+  schedule:
+    - cron: '0 0 * * 1' # Runs every hour, between 07:00 and 18:00, Monday through Friday.
 
 permissions:
   contents: write
@@ -16,12 +18,12 @@ jobs:
       - name: Close, Delete, and Lock Pull Requests
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Certifique-se de que este token esteja correto
-          ORG_NAME: getcyonic  # Substitua pelo nome da sua organização
+          ORG_NAME: cyonicsolutions-cluster  # Substitua pelo nome da sua organização
         run: |
           REPO="${{ github.repository }}"
           PR_NUMBER="${{ github.event.pull_request.number }}"
           PR_AUTHOR="${{ github.event.pull_request.user.login }}"
-          CLOSE_MESSAGE="**Pull request submissions are not accepted.**\n\nPlease visit https://github.com/getcyonic/.github/pulls and submit your pull request there with the same content.\nThank you!"
+          CLOSE_MESSAGE="**Pull request submissions are not accepted.**\n\nPlease visit https://github.com/getcyonic/$REPO_NAME/pulls and submit your pull request there with the same content.\nThank you!"
 
           echo "Processing Pull Request #$PR_NUMBER opened by $PR_AUTHOR in repository $REPO"
 
