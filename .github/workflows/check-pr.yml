@@ -55,8 +55,7 @@ jobs:
               # Verificar se o autor do PR é um membro da organização
               member_check=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/orgs/$ORG/members/$pr_author")
 
-              if [ "$(echo "$member_check" | jq -r '.message')" == "Not Found" ]; then
-                echo "$pr_author is not a member of the organization."
+                echo "Closing $pr_author pull request."
 
                 # Comentar no PR
                 curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
@@ -67,8 +66,6 @@ jobs:
                 curl -s -X PATCH -H "Authorization: token $GITHUB_TOKEN" \
                   -d "{\"state\": \"closed\"}" \
                   "https://api.github.com/repos/$repo/pulls/$pr_number"
-              else
-                echo "$pr_author is a member of the organization. Not closing the PR."
               fi
             done
           done
