@@ -52,21 +52,16 @@ jobs:
 
               echo "Found open PR: $pr_number in $repo by $pr_author"
 
-              # Verificar se o autor do PR é um membro da organização
-              member_check=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/orgs/$ORG/members/$pr_author")
+              echo "Closing $pr_author pull request."
 
-              if [ "$member_check" == "404" ]; then
-                echo "Closing $pr_author pull request."
+              # Comentar no PR
+              curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
+                -d "{\"body\": \"$PR_MESSAGE\"}" \
+                "https://api.github.com/repos/$repo/issues/$pr_number/comments"
 
-                # Comentar no PR
-                curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
-                  -d "{\"body\": \"$PR_MESSAGE\"}" \
-                  "https://api.github.com/repos/$repo/issues/$pr_number/comments"
-
-                # Fechar o PR
-                curl -s -X PATCH -H "Authorization: token $GITHUB_TOKEN" \
-                  -d "{\"state\": \"closed\"}" \
-                  "https://api.github.com/repos/$repo/pulls/$pr_number"
-              fi
+              # Fechar o PR
+              curl -s -X PATCH -H "Authorization: token $GITHUB_TOKEN" \
+                -d "{\"state\": \"closed\"}" \
+                "https://api.github.com/repos/$repo/pulls/$pr_number"
             done
           done
