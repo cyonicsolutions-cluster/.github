@@ -51,24 +51,16 @@ jobs:
 
               echo "Found open issue: #$issue_number in $repo by $issue_author"
 
-              # Verifica se o autor da issue é um membro da organização
-              member_check=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/orgs/$ORG/members/$issue_author")
+              # Comenta na issue
+              curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
+                -d "{\"body\": \"$CLOSE_MESSAGE\"}" \
+                "https://api.github.com/repos/$repo/issues/$issue_number/comments"
 
-              # Verifica a resposta para determinar se o autor é um membro
-              if [[ "$(echo "$member_check" | jq -r '.message')" == "Not Found" || "$(echo "$member_check" | jq -r '.message')" == "404 Not Found" ]]; then
-                echo "$issue_author is not a member of the organization. Closing issue #$issue_number"
+              # Fecha a issue
+              curl -s -X PATCH -H "Authorization: token $GITHUB_TOKEN" \
+                -d "{\"state\": \"closed\"}" \
+                "https://api.github.com/repos/$repo/issues/$issue_number"
 
-                # Comenta na issue
-                curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
-                  -d "{\"body\": \"$CLOSE_MESSAGE\"}" \
-                  "https://api.github.com/repos/$repo/issues/$issue_number/comments"
-
-                # Fecha a issue
-                curl -s -X PATCH -H "Authorization: token $GITHUB_TOKEN" \
-                  -d "{\"state\": \"closed\"}" \
-                  "https://api.github.com/repos/$repo/issues/$issue_number"
-              else
-                echo "$issue_author is a member of the organization. Not closing the issue."
-              fi
+              echo "Closed issue #$issue_number in $repo."
             done
           done
