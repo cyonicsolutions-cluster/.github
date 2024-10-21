@@ -2,7 +2,7 @@ name: Auto Close, Delete, and Lock Pull Requests
 
 on:
   pull_request_target:
-    types: [opened, reopened]  # Executa automaticamente quando um pull request é aberto
+    types: [opened, reopened]  # Executa automaticamente quando um pull request é reaberto
 
 permissions:
   contents: write
@@ -16,7 +16,6 @@ jobs:
       - name: Close, Delete, and Lock Pull Requests
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Certifique-se de que este token esteja correto
-          GITHUB_USER: ${{ github.actor }}  # Usuário que forneceu o token
         run: |
           REPO="${{ github.repository }}"
           PR_NUMBER="${{ github.event.pull_request.number }}"
@@ -25,13 +24,10 @@ jobs:
 
           echo "Processing Pull Request #$PR_NUMBER opened by $PR_AUTHOR in repository $REPO"
 
-          # Comenta no pull request como uma revisão
+          # Comenta no pull request
           curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
             -d "{\"body\": \"$CLOSE_MESSAGE\"}" \
-            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/comments" || echo "Failed to comment on pull request #$PR_NUMBER"
-
-          # Espera um pouco para garantir que o comentário seja postado
-          sleep 5
+            "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments" || echo "Failed to comment on pull request #$PR_NUMBER"
 
           # Fecha o pull request
           curl -s -X PATCH -H "Authorization: token $GITHUB_TOKEN" \
@@ -40,9 +36,15 @@ jobs:
 
           echo "Closed pull request #$PR_NUMBER in $REPO."
 
-          # Trava a conversa (lock)
+          # Bloqueia a conversa
           curl -s -X PUT -H "Authorization: token $GITHUB_TOKEN" \
             -d "{\"lock_reason\": \"resolved\"}" \
-            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/lock" || echo "Failed to lock PR #$PR_NUMBER"
+            "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/lock" || echo "Failed to lock PR #$PR_NUMBER"
 
           echo "Locked pull request #$PR_NUMBER in $REPO."
+
+          # Deleta o pull request (se aplicável)
+          curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER" || echo "Failed to delete PR #$PR_NUMBER"
+
+          echo "Deleted pull request #$PR_NUMBER in $REPO."
