@@ -2,51 +2,57 @@ name: Auto Close, Delete, and Lock Pull Requests
 
 on:
   pull_request:
-    types: [opened, reopened]  # Executa automaticamente quando um PR é aberto ou reaberto
+    types: [opened] # Executa automaticamente quando um pull request é aberto
 
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
-  close_lock_prs:
+  close_delete_lock_pull_requests:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Close, Lock Pull Requests
+      - name: Close, Delete, and Lock Pull Requests
         env:
-          PR_TOKEN: ${{ secrets.PULL_REQUESTS_TOKEN }}  # Token para autenticação
-          GITHUB_USER: ${{ github.actor }}  # Usuário que forneceu o token
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_USER: ${{ github.actor }} # Usuário que forneceu o token
         run: |
           ORG="cyonicsolutions-cluster"
           REPO="${{ github.repository }}"
           PR_NUMBER="${{ github.event.pull_request.number }}"
           PR_AUTHOR="${{ github.event.pull_request.user.login }}"
-          CLOSE_MESSAGE="**Pull requests from outside the organization are not accepted.**\n\nPlease visit https://github.com/getcyonic/$REPO/pulls and submit your pull request there with the same content.\nThank you!"
+          CLOSE_MESSAGE="**Pull request submissions are not accepted.**\n\nPlease visit https://github.com/getcyonic/$REPO/pulls and submit your pull request there with the same content.\nThank you!"
 
           # Verifica se o token está definido
-          if [ -z "$PR_TOKEN" ]; then
-            echo "PR_TOKEN is not set. Exiting..."
+          if [ -z "$GITHUB_TOKEN" ]; then
+            echo "GITHUB_TOKEN is not set. Exiting..."
             exit 1
           fi
 
           echo "Pull Request #$PR_NUMBER opened by $PR_AUTHOR in repository $REPO"
 
-          # Comenta no PR com a mensagem de fechamento
-          curl -s -X POST -H "Authorization: token $PR_TOKEN" \
+          # Comenta no pull request com a mensagem de fechamento
+          curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
             -d "{\"body\": \"$CLOSE_MESSAGE\"}" \
-            "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments"
+            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/comments"
 
-          # Fecha o PR
-          curl -s -X PATCH -H "Authorization: token $PR_TOKEN" \
+          # Fecha o pull request
+          curl -s -X PATCH -H "Authorization: token $GITHUB_TOKEN" \
             -d "{\"state\": \"closed\"}" \
             "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER"
 
           echo "Closed pull request #$PR_NUMBER in $REPO."
 
           # Trava a conversa (lock)
-          curl -s -X PUT -H "Authorization: token $PR_TOKEN" \
+          curl -s -X PUT -H "Authorization: token $GITHUB_TOKEN" \
             -d "{\"lock_reason\": \"resolved\"}" \
-            "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/lock"
+            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/lock"
 
           echo "Locked pull request #$PR_NUMBER in $REPO."
+
+          # Deleta o pull request (remover se não desejar deletar)
+          curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER"
+
+          echo "Deleted pull request #$PR_NUMBER from $REPO."
