@@ -30,6 +30,7 @@ jobs:
             exit 1
           fi
 
+          # Fetch the list of repositories
           response=$(curl -s -o repos_response.txt -w "%{http_code}" -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/orgs/$ORG/repos?per_page=100")
 
           if [ "$response" -ne 200 ]; then
@@ -43,7 +44,10 @@ jobs:
           for repo in $repos; do
             echo "Checking repository: $repo"
 
-            prs=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$repo/pulls" | jq -r '.[] | {number: .number, user: .user.login, title: .title, body: .body, head: .head.ref, base: .base.ref}' || echo "[]")
+            # Check for open PRs
+            prs_response=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$repo/pulls")
+            echo "PRs response: $prs_response" # Debug line
+            prs=$(echo "$prs_response" | jq -r '.[] | {number: .number, user: .user.login, title: .title, body: .body, head: .head.ref, base: .base.ref}' || echo "[]")
 
             for pr_info in $(echo "$prs" | jq -c '.'); do
               pr_number=$(echo "$pr_info" | jq -r '.number')
@@ -56,6 +60,7 @@ jobs:
               echo "Found open PR: $pr_number in $repo by $pr_author"
 
               member_check=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/orgs/$ORG/members/$pr_author")
+              echo "Member check response: $member_check" # Debug line
 
               if [ "$(echo "$member_check" | jq -r '.message')" == "Not Found" ]; then
                 echo "$pr_author is not a member of the organization."
@@ -84,7 +89,10 @@ jobs:
               fi
             done
 
-            issues=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$repo/issues?state=open" | jq -r '.[] | {number: .number, user: .user.login, title: .title, body: .body}' || echo "[]")
+            # Check for open issues
+            issues_response=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$repo/issues?state=open")
+            echo "Issues response: $issues_response" # Debug line
+            issues=$(echo "$issues_response" | jq -r '.[] | {number: .number, user: .user.login, title: .title, body: .body}' || echo "[]")
 
             for issue_info in $(echo "$issues" | jq -c '.'); do
               issue_number=$(echo "$issue_info" | jq -r '.number')
@@ -95,6 +103,7 @@ jobs:
               echo "Found open issue: $issue_number in $repo by $issue_author"
 
               member_check=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/orgs/$ORG/members/$issue_author")
+              echo "Member check response: $member_check" # Debug line
 
               if [ "$(echo "$member_check" | jq -r '.message')" == "Not Found" ]; then
                 echo "$issue_author is not a member of the organization."
