@@ -25,18 +25,14 @@ jobs:
 
           echo "Processing Pull Request #$PR_NUMBER opened by $PR_AUTHOR in repository $REPO"
 
-          # Comenta no pull request com a mensagem de fechamento
-          RESPONSE=$(curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
-            -d "{\"body\": \"$CLOSE_MESSAGE\"}" \
-            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/comments")
+          # Obtem o commit_id do PR
+          COMMIT_ID=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER" | jq -r '.head.sha')
 
-          # Verifica se o comentário foi enviado com sucesso
-          if echo "$RESPONSE" | grep -q '"id":'; then
-            echo "Commented on pull request #$PR_NUMBER successfully."
-          else
-            echo "Failed to comment on pull request #$PR_NUMBER. Response: $RESPONSE"
-            exit 1
-          fi
+          # Comenta no pull request como uma revisão
+          curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
+            -d "{\"body\": \"$CLOSE_MESSAGE\", \"commit_id\": \"$COMMIT_ID\", \"path\": \"\", \"position\": 1}" \
+            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/comments" || echo "Failed to comment on pull request #$PR_NUMBER"
 
           # Fecha o pull request
           curl -s -X PATCH -H "Authorization: token $GITHUB_TOKEN" \
