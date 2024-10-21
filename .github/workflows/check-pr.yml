@@ -2,7 +2,7 @@ name: Auto Close, Delete, and Lock Pull Requests
 
 on:
   pull_request:
-    types: [opened, reopened] # Executa automaticamente quando um pull request é aberto
+    types: [opened]
 
 permissions:
   contents: write
@@ -15,8 +15,8 @@ jobs:
     steps:
       - name: Close, Delete, and Lock Pull Requests
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_USER: ${{ github.actor }} # Usuário que forneceu o token
+          GITHUB_TOKEN: ${{ github.token }}  # Referenciando o GITHUB_TOKEN corretamente
+          GITHUB_USER: ${{ github.actor }}    # Usuário que forneceu o token
         run: |
           ORG="cyonicsolutions-cluster"
           REPO="${{ github.repository }}"
@@ -50,9 +50,3 @@ jobs:
             "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/lock"
 
           echo "Locked pull request #$PR_NUMBER in $REPO."
-
-          # Deleta o pull request (remover se não desejar deletar)
-          curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
-            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER"
-
-          echo "Deleted pull request #$PR_NUMBER from $REPO."
