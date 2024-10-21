@@ -1,20 +1,19 @@
-name: Auto Close and Delete Issues
+name: Auto Close, Delete, and Lock Issues
 
 on:
   issues:
     types: [opened] # Executa automaticamente quando uma issue é aberta
-  workflow_dispatch:
 
 permissions:
   contents: write
   issues: write
 
 jobs:
-  close_and_delete_issues:
+  close_delete_lock_issues:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Close and Delete Issues
+      - name: Close, Delete, and Lock Issues
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_USER: ${{ github.actor }} # Usuário que forneceu o token
@@ -23,7 +22,7 @@ jobs:
           REPO="${{ github.repository }}"
           ISSUE_NUMBER="${{ github.event.issue.number }}"
           ISSUE_AUTHOR="${{ github.event.issue.user.login }}"
-          CLOSE_MESSAGE="**Issue reporting is not accepted.** Please visit https://github.com/getcyonic/$REPO/issues and submit your issue report there with the same content.\nThank you!"
+          CLOSE_MESSAGE="**Issue reporting is not accepted.**\n\nPlease visit https://github.com/getcyonic/$REPO/issues and submit your issue report there with the same content.\nThank you!"
 
           # Verifica se o token está definido
           if [ -z "$GITHUB_TOKEN" ]; then
@@ -44,6 +43,13 @@ jobs:
             "https://api.github.com/repos/$REPO/issues/$ISSUE_NUMBER"
 
           echo "Closed issue #$ISSUE_NUMBER in $REPO."
+
+          # Trava a conversa (lock)
+          curl -s -X PUT -H "Authorization: token $GITHUB_TOKEN" \
+            -d "{\"lock_reason\": \"resolved\"}" \
+            "https://api.github.com/repos/$REPO/issues/$ISSUE_NUMBER/lock"
+
+          echo "Locked issue #$ISSUE_NUMBER in $REPO."
 
           # Deleta a issue
           curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
