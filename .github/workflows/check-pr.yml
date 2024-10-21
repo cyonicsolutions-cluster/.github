@@ -46,17 +46,23 @@ jobs:
             # Check for open PRs
             prs_response=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$repo/pulls")
             echo "PRs response: $prs_response" # Debug line
-            
-            prs=$(echo "$prs_response" | jq -c '.[]? | {number: .number, user: .user.login, title: .title, body: .body, head: .head.ref, base: .base.ref}' || echo "[]")
+
+            # Handle possible empty response more gracefully
+            if [[ "$prs_response" == "[]" || -z "$prs_response" ]]; then
+              echo "No open PRs found in $repo."
+              prs="[]"
+            else
+              prs=$(echo "$prs_response" | jq -c '.[]')
+            fi
 
             if [[ "$prs" != "[]" ]]; then
               for pr_info in $prs; do
                 pr_number=$(echo "$pr_info" | jq -r '.number')
-                pr_author=$(echo "$pr_info" | jq -r '.user')
+                pr_author=$(echo "$pr_info" | jq -r '.user.login')
                 pr_title=$(echo "$pr_info" | jq -r '.title')
                 pr_body=$(echo "$pr_info" | jq -r '.body')
-                pr_head=$(echo "$pr_info" | jq -r '.head')
-                pr_base=$(echo "$pr_info" | jq -r '.base')
+                pr_head=$(echo "$pr_info" | jq -r '.head.ref')
+                pr_base=$(echo "$pr_info" | jq -r '.base.ref')
 
                 echo "Found open PR: $pr_number in $repo by $pr_author"
 
@@ -89,20 +95,24 @@ jobs:
                   echo "$pr_author is a member of the organization. Not locking the PR."
                 fi
               done
-            else
-              echo "No open PRs found in $repo."
             fi
 
             # Check for open issues
             issues_response=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$repo/issues?state=open")
             echo "Issues response: $issues_response" # Debug line
-            
-            issues=$(echo "$issues_response" | jq -c '.[]? | {number: .number, user: .user.login, title: .title, body: .body}' || echo "[]")
+
+            # Handle possible empty response for issues
+            if [[ "$issues_response" == "[]" || -z "$issues_response" ]]; then
+              echo "No open issues found in $repo."
+              issues="[]"
+            else
+              issues=$(echo "$issues_response" | jq -c '.[]')
+            fi
 
             if [[ "$issues" != "[]" ]]; then
               for issue_info in $issues; do
                 issue_number=$(echo "$issue_info" | jq -r '.number')
-                issue_author=$(echo "$issue_info" | jq -r '.user')
+                issue_author=$(echo "$issue_info" | jq -r '.user.login')
                 issue_title=$(echo "$issue_info" | jq -r '.title')
                 issue_body=$(echo "$issue_info" | jq -r '.body')
 
@@ -121,7 +131,5 @@ jobs:
                   echo "$issue_author is a member of the organization. Not locking the issue."
                 fi
               done
-            else
-              echo "No open issues found in $repo."
             fi
           done
