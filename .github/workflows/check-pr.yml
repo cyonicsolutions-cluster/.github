@@ -6,7 +6,7 @@ on:
   schedule:
     - cron: '0 0 * * 1-5'
   workflow_dispatch:
-  
+
 permissions:
   contents: read
   pull-requests: write
@@ -22,7 +22,7 @@ jobs:
         run: |
           ORG="cyonicsolutions-cluster"
           PR_MESSAGE="This repository only accepts mirror pushes.\nPull requests cannot be accepted without you being from our company."
-          
+
           # Check if the token is set
           if [ -z "$GITHUB_TOKEN" ]; then
             echo "GITHUB_TOKEN is not set. Exiting..."
@@ -55,6 +55,7 @@ jobs:
               # Verificar se o autor do PR é um membro da organização
               member_check=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/orgs/$ORG/members/$pr_author")
 
+              if [ "$member_check" == "404" ]; then
                 echo "Closing $pr_author pull request."
 
                 # Comentar no PR
