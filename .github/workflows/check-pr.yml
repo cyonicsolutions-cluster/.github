@@ -18,7 +18,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_USER: ${{ github.actor }} # User who provided the token
-          TARGET_REPO: "getcyonic/target-repo" # Alvo onde a PR será criada
+          TARGET_REPO: "getcyonic/${target-repo}" # Alvo onde a PR será criada
         run: |
           ORG="cyonicsolutions-cluster"
           PR_MESSAGE="**Pull Requests are not accepted.** Please visit https://github.com/getcyonic/${TARGET_REPO}/compare and submit your pull request there with the same content.\nThank you!"
