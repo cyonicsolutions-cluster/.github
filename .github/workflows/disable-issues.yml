@@ -18,7 +18,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ORG="your-organization" # Substitua pelo nome da sua organização
+          ORG="cyonicsolutions-cluster" # Substitua pelo nome da sua organização
 
           echo "Fetching all repositories for organization $ORG..."
 
