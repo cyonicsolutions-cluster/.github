@@ -5,6 +5,7 @@ on:
     types: [opened, reopened]  # Executa automaticamente quando um pull request é reaberto
   schedule:
     - cron: '0 0 * * 1' # Runs every hour, between 07:00 and 18:00, Monday through Friday.
+  workflow_dispatch:
 
 permissions:
   contents: write
