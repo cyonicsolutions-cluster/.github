@@ -1,12 +1,13 @@
 name: Auto Close, Delete, and Lock Pull Requests
 
 on:
-  pull_request:
-    types: [opened]
+  pull_request_target:
+    types: [opened, reopened]
 
 permissions:
   contents: write
   pull-requests: write
+  issues: write
 
 jobs:
   close_delete_lock_pull_requests:
@@ -15,38 +16,30 @@ jobs:
     steps:
       - name: Close, Delete, and Lock Pull Requests
         env:
-          GITHUB_TOKEN: ${{ secrets.PULL_REQUESTS_CHECKING_TOKEN }}  # Referenciando o GITHUB_TOKEN corretamente
-          GITHUB_USER: ${{ github.actor }}    # Usuário que forneceu o token
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Usar o token padrão
         run: |
-          ORG="cyonicsolutions-cluster"
           REPO="${{ github.repository }}"
           PR_NUMBER="${{ github.event.pull_request.number }}"
           PR_AUTHOR="${{ github.event.pull_request.user.login }}"
           CLOSE_MESSAGE="**Pull request submissions are not accepted.**\n\nPlease visit https://github.com/getcyonic/$REPO/pulls and submit your pull request there with the same content.\nThank you!"
 
-          # Verifica se o token está definido
-          if [ -z "$GITHUB_TOKEN" ]; then
-            echo "GITHUB_TOKEN is not set. Exiting..."
-            exit 1
-          fi
-
-          echo "Pull Request #$PR_NUMBER opened by $PR_AUTHOR in repository $REPO"
+          echo "Processing Pull Request #$PR_NUMBER opened by $PR_AUTHOR in repository $REPO"
 
           # Comenta no pull request com a mensagem de fechamento
           curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
             -d "{\"body\": \"$CLOSE_MESSAGE\"}" \
-            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/comments"
+            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/comments" || echo "Failed to comment on PR"
 
           # Fecha o pull request
           curl -s -X PATCH -H "Authorization: token $GITHUB_TOKEN" \
             -d "{\"state\": \"closed\"}" \
-            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER"
+            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER" || echo "Failed to close PR"
 
           echo "Closed pull request #$PR_NUMBER in $REPO."
 
           # Trava a conversa (lock)
           curl -s -X PUT -H "Authorization: token $GITHUB_TOKEN" \
             -d "{\"lock_reason\": \"resolved\"}" \
-            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/lock"
+            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/lock" || echo "Failed to lock PR"
 
           echo "Locked pull request #$PR_NUMBER in $REPO."
