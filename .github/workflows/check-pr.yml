@@ -2,7 +2,7 @@ name: Auto Close, Delete, and Lock Pull Requests
 
 on:
   pull_request:
-    types: [opened] # Executa automaticamente quando um pull request é aberto
+    types: [opened, reopened] # Executa automaticamente quando um pull request é aberto
 
 permissions:
   contents: write
