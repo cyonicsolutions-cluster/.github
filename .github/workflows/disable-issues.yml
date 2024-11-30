@@ -1,4 +1,7 @@
-name: Disable Issues for All Repositories
+# name: Disable Issues for All Repositories
+
+# remove the above # for enabling this workflow
+# as of 30/11/24, this workflow doesn't work and needs to be remade.
 
 on:
   workflow_dispatch: # Permite executar manualmente o workflow
